@@ -5,6 +5,12 @@ export type Token =
   | { kind: "short"; name: string; value?: string }
   | { kind: "positional"; value: string };
 
+/** Splits `name=value` / `name` option bodies into a name and optional value. */
+function splitValue(raw: string): { name: string; value?: string } {
+  const eq = raw.indexOf("=");
+  return eq >= 0 ? { name: raw.slice(0, eq), value: raw.slice(eq + 1) } : { name: raw };
+}
+
 /**
  * Splits argv into option tokens (long/short, inline `=value` supported) and
  * positionals. Everything after a bare `--` is treated as positional.
@@ -23,23 +29,11 @@ export function tokenize(argv: string[]): Token[] {
       continue;
     }
     if (arg.startsWith("--")) {
-      const body = arg.slice(2);
-      const eq = body.indexOf("=");
-      tokens.push(
-        eq >= 0
-          ? { kind: "long", name: body.slice(0, eq), value: body.slice(eq + 1) }
-          : { kind: "long", name: body },
-      );
+      tokens.push({ kind: "long", ...splitValue(arg.slice(2)) });
       continue;
     }
     if (arg.startsWith("-") && arg.length > 1) {
-      const body = arg.slice(1);
-      const eq = body.indexOf("=");
-      tokens.push(
-        eq >= 0
-          ? { kind: "short", name: body.slice(0, eq), value: body.slice(eq + 1) }
-          : { kind: "short", name: body },
-      );
+      tokens.push({ kind: "short", ...splitValue(arg.slice(1)) });
       continue;
     }
     tokens.push({ kind: "positional", value: arg });

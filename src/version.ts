@@ -1,15 +1,6 @@
-import { readFile } from "node:fs/promises";
-
-type packagejson = {
-  version: string;
-};
-
 export const version = async (): Promise<string> => {
-  const packageJsonText = await readFile(
-    new URL("../package.json", import.meta.url),
-    "utf-8",
-  );
-  const packageJson: packagejson = JSON.parse(packageJsonText);
-
-  return packageJson.version;
+  const pkg = (await Bun.file(new URL("../package.json", import.meta.url)).json()) as {
+    version: string;
+  };
+  return pkg.version;
 };

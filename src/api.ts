@@ -15,6 +15,26 @@ const MAX_ATTEMPTS = 3;
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** Performs one request and returns the response with its parsed JSON body (if any). */
+async function request(url: string): Promise<{ response: Response; body: unknown }> {
+  const response = await fetch(url, {
+    headers: { accept: "application/json" },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+
+  const text = await response.text();
+  let body: unknown;
+  if (text) {
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = undefined;
+    }
+  }
+
+  return { response, body };
+}
+
 /**
  * Fetches a post payload from the FxTwitter API.
  *
@@ -30,20 +50,7 @@ export async function fetchStatus(id: string): Promise<unknown> {
     if (attempt > 0) await sleep(RETRY_DELAY_MS * attempt);
 
     try {
-      const response = await fetch(url, {
-        headers: { accept: "application/json" },
-        signal: AbortSignal.timeout(TIMEOUT_MS),
-      });
-
-      const text = await response.text();
-      let body: unknown;
-      if (text) {
-        try {
-          body = JSON.parse(text);
-        } catch {
-          body = undefined;
-        }
-      }
+      const { response, body } = await request(url);
 
       if (response.ok) {
         if (body === undefined) {

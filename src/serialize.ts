@@ -204,6 +204,17 @@ function blockHeader(value: string): { header: string; content: string } {
   };
 }
 
+/**
+ * Appends a literal block scalar. `label` is the map key (e.g. `text:`) or the
+ * array dash (`-`) that introduces the scalar.
+ */
+function emitBlockScalar(lines: string[], label: string, value: string, indent: number): void {
+  const { header, content } = blockHeader(value);
+  lines.push(`${" ".repeat(indent)}${label} ${header}`);
+  const bodyPad = " ".repeat(indent + 2);
+  for (const line of content.split("\n")) lines.push(line === "" ? "" : bodyPad + line);
+}
+
 function emitYamlMap(obj: JsonObject, indent: number): string[] {
   const pad = " ".repeat(indent);
   const lines: string[] = [];
@@ -212,10 +223,7 @@ function emitYamlMap(obj: JsonObject, indent: number): string[] {
     if (value === undefined) continue;
 
     if (typeof value === "string" && value.includes("\n")) {
-      const { header, content } = blockHeader(value);
-      lines.push(`${pad}${key}: ${header}`);
-      const bodyPad = " ".repeat(indent + 2);
-      for (const line of content.split("\n")) lines.push(line === "" ? "" : bodyPad + line);
+      emitBlockScalar(lines, `${key}:`, value, indent);
       continue;
     }
 
@@ -251,10 +259,7 @@ function emitYamlArray(items: unknown[], indent: number): string[] {
 
   for (const item of items) {
     if (typeof item === "string" && item.includes("\n")) {
-      const { header, content } = blockHeader(item);
-      lines.push(`${pad}- ${header}`);
-      const bodyPad = " ".repeat(indent + 2);
-      for (const line of content.split("\n")) lines.push(line === "" ? "" : bodyPad + line);
+      emitBlockScalar(lines, "-", item, indent);
       continue;
     }
 

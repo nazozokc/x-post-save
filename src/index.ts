@@ -8,6 +8,13 @@ import { FORMATS, isFormat, serialize } from "./serialize.ts";
 import { parsePostRef } from "./url.ts";
 import { version } from "./version.ts";
 
+/** Reports a fatal input error and marks the process as failed. */
+const fail = (message: string, hint?: string): void => {
+  io.error(message);
+  if (hint) io.hint(hint);
+  process.exitCode = 1;
+};
+
 const command = define({
   name: "x-post-save",
   description: "Save an X (Twitter) post to json, md, toml, or yaml",
@@ -35,25 +42,22 @@ const command = define({
   run: async (ctx) => {
     const input = ctx.positionals[0];
     if (!input) {
-      io.error("a post URL or id is required");
-      io.hint("usage: x-post-save <url|id> --format <format>");
-      process.exitCode = 1;
+      fail("a post URL or id is required", "usage: x-post-save <url|id> --format <format>");
       return;
     }
 
     const format = ctx.values.format;
     if (!isFormat(format)) {
-      io.error(`unknown format '${format}'`);
-      io.hint(`available formats: ${FORMATS.join(", ")}`);
-      process.exitCode = 1;
+      fail(`unknown format '${format}'`, `available formats: ${FORMATS.join(", ")}`);
       return;
     }
 
     const ref = parsePostRef(input);
     if (!ref) {
-      io.error(`could not read a post from '${input}'`);
-      io.hint("expected an x.com / twitter.com status URL or a numeric id");
-      process.exitCode = 1;
+      fail(
+        `could not read a post from '${input}'`,
+        "expected an x.com / twitter.com status URL or a numeric id",
+      );
       return;
     }
 
@@ -65,8 +69,7 @@ const command = define({
       const path = await save(ctx.values.out, post, format, content);
       io.success(`saved ${path}`);
     } catch (error) {
-      io.error(error instanceof Error ? error.message : String(error));
-      process.exitCode = 1;
+      fail(error instanceof Error ? error.message : String(error));
     }
   },
 });
