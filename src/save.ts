@@ -1,6 +1,27 @@
-import { writeFile } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
+import { join, resolve } from "node:path";
+import type { Post } from "./post.ts";
+import type { Format } from "./serialize.ts";
 
-export const savePost = async (dir: string, saveposts: any): Promise<void> => {
-  const stringify = JSON.stringify(saveposts, null, 2);
-  await writeFile(dir, stringify, "utf-8");
+const EXTENSION: Record<Format, string> = {
+  json: "json",
+  md: "md",
+  toml: "toml",
+  yaml: "yaml",
 };
+
+/** Writes `content` to `<dir>/<screenName>-<id>.<ext>` and returns the absolute path. */
+export async function save(
+  dir: string,
+  post: Post,
+  format: Format,
+  content: string,
+): Promise<string> {
+  const target = resolve(dir);
+  await mkdir(target, { recursive: true });
+
+  const owner = post.author.screenName || "post";
+  const path = join(target, `${owner}-${post.id}.${EXTENSION[format]}`);
+  await Bun.write(path, content);
+  return path;
+}

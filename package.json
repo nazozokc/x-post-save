@@ -1,18 +1,24 @@
 {
   "name": "x-post-save",
-  "module": "index.ts",
+  "version": "0.1.0",
+  "description": "Save an X (Twitter) post to json, md, toml, or yaml",
   "type": "module",
   "bin": {
     "x-post-save": "src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "build": "bun build ./src/index.ts --target=bun --outfile=dist/index.mjs"
   },
   "devDependencies": {
     "@types/bun": "latest"
   },
   "peerDependencies": {
     "typescript": "^7"
-  },
-  "dependencies": {
-    "consola": "^3.4.2",
-    "gunshi": "^0.37.3"
   }
 }
