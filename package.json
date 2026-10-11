@@ -1,0 +1,18 @@
+{
+  "name": "x-post-save",
+  "module": "index.ts",
+  "type": "module",
+  "bin": {
+    "x-post-save": "src/index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
+  },
+  "dependencies": {
+    "consola": "^3.4.2",
+    "gunshi": "^0.37.3"
+  }
+}
