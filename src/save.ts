@@ -20,8 +20,10 @@ export async function save(
   const target = resolve(dir);
   await mkdir(target, { recursive: true });
 
-  const owner = post.author.screenName || "post";
-  const path = join(target, `${owner}-${post.id}.${EXTENSION[format]}`);
+  // API-controlled values must never become path components. Keep the output
+  // filename deterministic and confined to the selected directory.
+  const id = /^\d{2,20}$/.test(post.id) ? post.id : "post";
+  const path = join(target, `${id}.${EXTENSION[format]}`);
   await Bun.write(path, content);
   return path;
 }
