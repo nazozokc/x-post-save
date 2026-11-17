@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { ApiError } from "./api.ts";
+import { ApiError } from "./errors.ts";
 import { normalize } from "./post.ts";
 
 const payload = {

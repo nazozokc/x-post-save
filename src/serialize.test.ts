@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { Post } from "./post.ts";
-import { FORMATS, isFormat, serialize } from "./serialize.ts";
+import { FORMATS, isFormat, serialize } from "./serialize/index.ts";
 
 const sample: Post = {
   id: "20",

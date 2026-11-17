@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { ApiError, fetchStatus, type FetchOptions } from "./api.ts";
+import { fetchStatus, type FetchOptions } from "./api.ts";
+import { ApiError } from "./errors.ts";
 
 /** Builds a stub fetch that records the init object and returns queued responses. */
 function stub(responses: Array<Response | Error>): {

@@ -1,4 +1,4 @@
-import { ApiError } from "./api.ts";
+import { ApiError } from "./errors.ts";
 
 export type MediaType = "photo" | "video" | "gif";
 
