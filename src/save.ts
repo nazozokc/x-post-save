@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { lstat, mkdir, open, rename, unlink } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { Post } from "./post.ts";
-import type { Format } from "./serialize.ts";
+import type { Format } from "./serialize/index.ts";
 
 const EXTENSION: Record<Format, string> = {
   json: "json",
