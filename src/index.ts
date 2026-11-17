@@ -45,6 +45,11 @@ const command = define({
       fail("a post URL or id is required", "usage: x-post-save <url|id> --format <format>");
       return;
     }
+    const extra = ctx.positionals[1];
+    if (extra !== undefined) {
+      fail(`unexpected extra argument '${extra}'`, "only one post URL or id is accepted");
+      return;
+    }
 
     const format = ctx.values.format;
     if (!isFormat(format)) {

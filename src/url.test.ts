@@ -31,4 +31,18 @@ describe("parsePostRef", () => {
     expect(parsePostRef("https://x.com/jack")).toBeNull();
     expect(parsePostRef("1")).toBeNull(); // too short to be a snowflake
   });
+
+  test("accepts alternate www/mobile prefix order", () => {
+    expect(parsePostRef("https://mobile.www.x.com/jack/status/20")).toEqual({
+      id: "20",
+      screenName: "jack",
+    });
+  });
+
+  test("rejects non-http schemes and partial id matches", () => {
+    expect(parsePostRef("javascript://x.com/jack/status/20")).toBeNull();
+    expect(parsePostRef("file:///x.com/jack/status/20")).toBeNull();
+    expect(parsePostRef("https://x.com/jack/status/20abc")).toBeNull();
+    expect(parsePostRef("https://x.com/jack/status/2")).toBeNull();
+  });
 });

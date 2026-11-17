@@ -15,7 +15,7 @@ bun run src/index.ts https://x.com/jack/status/20 --format json --out ./posts
 bun run src/index.ts 20 -f yaml -o ./posts
 ```
 
-Output file: `<out>/<screenName>-<id>.<ext>`, e.g. `./posts/jack-20.json`.
+Output file: `<out>/<id>.<ext>`, e.g. `./posts/20.json`. The post id is validated before it is used as a filename, so screen names and other API-controlled values never become path components.
 
 ### Options
 

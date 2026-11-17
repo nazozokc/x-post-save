@@ -51,4 +51,16 @@ describe("resolveArgs", () => {
     expect(resolveArgs(tokenize(["-f", "json", "--verbose"]), args).values.verbose).toBe(true);
     expect(resolveArgs(tokenize(["-f", "json", "--no-verbose"]), args).values.verbose).toBe(false);
   });
+
+  test("reports the flag the user actually typed", () => {
+    expect(resolveArgs(tokenize(["-f"]), args).errors).toContain("option '-f' requires a value");
+  });
+
+  test("rejects non-finite numbers", () => {
+    const numbers = { count: { type: "number" as const } };
+    expect(resolveArgs(tokenize(["--count", "Infinity"]), numbers).errors).toContain(
+      "option '--count' expects a number",
+    );
+    expect(resolveArgs(tokenize(["--count", "12"]), numbers).values.count).toBe(12);
+  });
 });

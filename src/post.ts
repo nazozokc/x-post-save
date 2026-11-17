@@ -56,6 +56,18 @@ export interface Post {
 
 type Json = Record<string, unknown>;
 
+/** Largest seconds value whose millisecond representation fits in a JS Date. */
+const MAX_TIMESTAMP_SECONDS = 8_640_000_000_000;
+
+/** Converts an API timestamp without letting an out-of-range value throw. */
+function toCreatedAtIso(timestamp: number): string | null {
+  if (!Number.isFinite(timestamp) || timestamp <= 0 || timestamp > MAX_TIMESTAMP_SECONDS) {
+    return null;
+  }
+  const date = new Date(timestamp * 1000);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
 const isRecord = (value: unknown): value is Json =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -166,8 +178,7 @@ export function normalize(payload: unknown): Post {
   }
 
   const timestamp = num(status.created_timestamp);
-  const createdAtIso =
-    timestamp > 0 ? new Date(timestamp * 1000).toISOString() : null;
+  const createdAtIso = toCreatedAtIso(timestamp);
 
   return {
     id: str(status.id),

@@ -1,4 +1,5 @@
 import type { Post } from "./post.ts";
+import { escapeMarkdown, markdownUrl } from "./text.ts";
 
 export const FORMATS = ["json", "md", "toml", "yaml"] as const;
 
@@ -33,21 +34,29 @@ function toJson(post: Post): string {
 /* markdown                                                                    */
 /* -------------------------------------------------------------------------- */
 
+/** Builds a Markdown link only when the URL has a safe, absolute scheme. */
+function markdownLink(label: string, url: string): string | undefined {
+  const href = markdownUrl(url);
+  return href === undefined ? undefined : `[${escapeMarkdown(label)}](${href})`;
+}
+
 function toMarkdown(post: Post): string {
   const lines: string[] = [];
+  const authorLink = markdownLink(`@${post.author.screenName}`, post.author.url);
 
-  lines.push(`# X post by @${post.author.screenName || "unknown"}`);
+  lines.push(`# X post by @${escapeMarkdown(post.author.screenName || "unknown")}`);
   lines.push("");
   lines.push(
-    `- **Author**: ${post.author.name} ([@${post.author.screenName}](${post.author.url}))`,
+    `- **Author**: ${escapeMarkdown(post.author.name)}${authorLink ? ` (${authorLink})` : ""}`,
   );
-  lines.push(`- **Posted**: ${post.createdAtIso ?? post.createdAt}`);
-  lines.push(`- **URL**: ${post.url}`);
-  if (post.lang) lines.push(`- **Language**: ${post.lang}`);
+  lines.push(`- **Posted**: ${escapeMarkdown(post.createdAtIso ?? post.createdAt)}`);
+  const url = markdownUrl(post.url);
+  if (url) lines.push(`- **URL**: ${url}`);
+  if (post.lang) lines.push(`- **Language**: ${escapeMarkdown(post.lang)}`);
   lines.push("");
   lines.push("---");
   lines.push("");
-  lines.push(post.text);
+  lines.push(escapeMarkdown(post.text));
   lines.push("");
   lines.push("## Metrics");
   lines.push("");
@@ -59,28 +68,35 @@ function toMarkdown(post: Post): string {
   lines.push(`| Replies | ${post.metrics.replies} |`);
   lines.push(`| Views   | ${post.metrics.views ?? "-"} |`);
 
-  if (post.media.length > 0) {
-    lines.push("");
-    lines.push("## Media");
-    lines.push("");
-    post.media.forEach((item, index) => {
-      if (item.type === "photo") {
-        const alt = item.altText ? item.altText.replace(/\s*\n\s*/g, " ") : "";
-        lines.push(`${index + 1}. ![${alt}](${item.url})`);
-      } else {
-        const label = item.type === "gif" ? "GIF" : "Video";
-        lines.push(`${index + 1}. [${label}](${item.url})`);
-      }
-    });
+  let mediaCount = 0;
+  for (const item of post.media) {
+    const href = markdownUrl(item.url);
+    if (href === undefined) continue;
+    mediaCount++;
+
+    if (mediaCount === 1) {
+      lines.push("");
+      lines.push("## Media");
+      lines.push("");
+    }
+
+    if (item.type === "photo") {
+      const alt = item.altText ? escapeMarkdown(item.altText.replace(/\s*\n\s*/g, " ")) : "";
+      lines.push(`${mediaCount}. ![${alt}](${href})`);
+    } else {
+      const label = item.type === "gif" ? "GIF" : "Video";
+      lines.push(`${mediaCount}. [${label}](${href})`);
+    }
   }
 
   if (post.quote) {
     lines.push("");
     lines.push("## Quoted post");
     lines.push("");
-    for (const line of post.quote.text.split("\n")) lines.push(`> ${line}`);
+    for (const line of escapeMarkdown(post.quote.text).split("\n")) lines.push(`> ${line}`);
     lines.push(">");
-    lines.push(`> — [@${post.quote.authorScreenName}](${post.quote.url})`);
+    const quoteLink = markdownLink(`@${post.quote.authorScreenName}`, post.quote.url);
+    if (quoteLink) lines.push(`> — ${quoteLink}`);
   }
 
   return `${lines.join("\n").replace(/\n+$/, "")}\n`;
@@ -196,23 +212,34 @@ function yamlScalar(value: unknown): string {
   return JSON.stringify(value);
 }
 
-function blockHeader(value: string): { header: string; content: string } {
-  const endsWithNewline = value.endsWith("\n");
-  return {
-    header: endsWithNewline ? "|" : "|-",
-    content: endsWithNewline ? value.slice(0, -1) : value,
-  };
+/**
+ * A literal block with an explicit indentation indicator: leading spaces in
+ * post text must survive round-trips, so the parser cannot infer indentation
+ * from the first non-empty line. `|+` retains every trailing line break.
+ */
+function blockLines(value: string): { header: string; lines: string[] } {
+  const trailing = value.endsWith("\n");
+  const lines = value.split("\n");
+  if (trailing) lines.pop();
+  return { header: trailing ? "|2+" : "|2-", lines };
 }
 
 /**
- * Appends a literal block scalar. `label` is the map key (e.g. `text:`) or the
- * array dash (`-`) that introduces the scalar.
+ * Appends a block scalar. `label` is the map key (e.g. `text:`) or the array
+ * dash (`-`) that introduces the scalar. CR is emitted as a quoted scalar
+ * because YAML normalises line breaks inside literal blocks.
  */
 function emitBlockScalar(lines: string[], label: string, value: string, indent: number): void {
-  const { header, content } = blockHeader(value);
-  lines.push(`${" ".repeat(indent)}${label} ${header}`);
+  const pad = " ".repeat(indent);
+  if (value.includes("\r")) {
+    lines.push(`${pad}${label} ${JSON.stringify(value)}`);
+    return;
+  }
+
+  const { header, lines: content } = blockLines(value);
+  lines.push(`${pad}${label} ${header}`);
   const bodyPad = " ".repeat(indent + 2);
-  for (const line of content.split("\n")) lines.push(line === "" ? "" : bodyPad + line);
+  for (const line of content) lines.push(line === "" ? "" : bodyPad + line);
 }
 
 function emitYamlMap(obj: JsonObject, indent: number): string[] {
