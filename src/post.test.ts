@@ -82,6 +82,15 @@ describe("normalize", () => {
     expect((error as ApiError).message).toBe("id: tweet ID must be a numeric snowflake");
   });
 
+  test("does not throw on an out-of-range timestamp", () => {
+    const post = normalize({
+      code: 200,
+      status: { type: "status", id: "20", created_timestamp: 1e300 },
+    });
+    expect(post.createdAtTimestamp).toBe(1e300);
+    expect(post.createdAtIso).toBeNull();
+  });
+
   test("throws on a tombstone status", () => {
     expect(() =>
       normalize({

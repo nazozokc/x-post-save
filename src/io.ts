@@ -1,3 +1,5 @@
+import { sanitizeTerminal } from "./text.ts";
+
 const colorEnabled =
   process.env.NO_COLOR === undefined &&
   process.env.TERM !== "dumb" &&
@@ -11,9 +13,14 @@ const write = (stream: NodeJS.WriteStream, line: string): void => {
 };
 
 export const io = {
-  info: (message: string): void => write(process.stderr, wrap("36", "•") + ` ${message}`),
-  success: (message: string): void => write(process.stderr, wrap("32", "✓") + ` ${message}`),
-  warn: (message: string): void => write(process.stderr, wrap("33", "!") + ` ${message}`),
-  error: (message: string): void => write(process.stderr, wrap("31", "✗") + ` ${message}`),
-  hint: (message: string): void => write(process.stderr, wrap("2", `  ${message}`)),
+  info: (message: string): void =>
+    write(process.stderr, wrap("36", "•") + ` ${sanitizeTerminal(message)}`),
+  success: (message: string): void =>
+    write(process.stderr, wrap("32", "✓") + ` ${sanitizeTerminal(message)}`),
+  warn: (message: string): void =>
+    write(process.stderr, wrap("33", "!") + ` ${sanitizeTerminal(message)}`),
+  error: (message: string): void =>
+    write(process.stderr, wrap("31", "✗") + ` ${sanitizeTerminal(message)}`),
+  hint: (message: string): void =>
+    write(process.stderr, wrap("2", `  ${sanitizeTerminal(message)}`)),
 };

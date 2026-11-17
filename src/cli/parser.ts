@@ -92,10 +92,11 @@ export function resolveArgs<A extends ArgDefinitions>(
       }
     }
 
+    const label = `${token.kind === "long" ? "--" : "-"}${token.name}`;
+
     const found = lookup.get(name);
     if (!found) {
-      const prefix = token.kind === "long" ? "--" : "-";
-      errors.push(`unknown option '${prefix}${token.name}'`);
+      errors.push(`unknown option '${label}'`);
       continue;
     }
 
@@ -109,7 +110,7 @@ export function resolveArgs<A extends ArgDefinitions>(
       if (token.value !== undefined) {
         const parsed = parseBoolean(token.value);
         if (parsed === undefined) {
-          errors.push(`option '--${name}' expects a boolean`);
+          errors.push(`option '${label}' expects a boolean`);
           continue;
         }
         values[key] = parsed;
@@ -126,15 +127,15 @@ export function resolveArgs<A extends ArgDefinitions>(
         raw = next.value;
         i++;
       } else {
-        errors.push(`option '--${name}' requires a value`);
+        errors.push(`option '${label}' requires a value`);
         continue;
       }
     }
 
     if (def.type === "number") {
       const n = Number(raw);
-      if (raw.trim() === "" || Number.isNaN(n)) {
-        errors.push(`option '--${name}' expects a number`);
+      if (raw.trim() === "" || !Number.isFinite(n)) {
+        errors.push(`option '${label}' expects a number`);
         continue;
       }
       values[key] = n;

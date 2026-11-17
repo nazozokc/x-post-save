@@ -87,10 +87,26 @@ describe("serialize", () => {
     expect(parsed).toEqual(sample);
   });
 
+  test("yaml block scalars round-trip indentation and trailing newlines", () => {
+    const texts = [
+      "  indented first\nplain",
+      "    code\n  less indented",
+      "trailing\n\n",
+      "a\n\n\n",
+      "\nleading blank",
+      "a\r\nb",
+      "",
+    ];
+    for (const text of texts) {
+      const output = serialize({ ...sample, text }, "yaml");
+      expect(Bun.YAML.parse(output)).toEqual({ ...sample, text });
+    }
+  });
+
   test("render yaml shape", () => {
     const output = serialize(sample, "yaml");
     // multi-line text becomes a literal block scalar
-    expect(output).toContain("text: |-");
+    expect(output).toContain("text: |2-");
     expect(output).toContain("  - type: photo");
     expect(output).toContain("quote:");
   });
@@ -102,5 +118,44 @@ describe("serialize", () => {
     expect(output).toContain("| Likes   | 311827 |");
     expect(output).toContain("![a star](https://pbs.twimg.com/media/a.jpg)");
     expect(output).toContain("## Quoted post");
+  });
+
+  test("markdown escapes untrusted text and drops unsafe URLs", () => {
+    const malicious: Post = {
+      ...sample,
+      url: "javascript:alert(1)",
+      text: "[click](javascript:alert(1)) <script>alert(2)</script> | a",
+      author: {
+        ...sample.author,
+        name: "ev](javascript:alert(3))",
+        url: "javascript:alert(4)",
+        screenName: "ev](",
+      },
+      media: [
+        ...sample.media,
+        { type: "photo", url: "javascript:alert(5)", altText: "bad](javascript:alert(6))" },
+      ],
+      quote: {
+        id: "99",
+        url: "data:text/html,x",
+        text: "<img src=x onerror=alert(7)>",
+        authorName: "Other",
+        authorScreenName: "other",
+      },
+    };
+
+    const output = serialize(malicious, "md");
+    expect(output).not.toContain("](javascript:");
+    expect(output).not.toContain("[click](javascript");
+    expect(output).not.toContain("<script>");
+    expect(output).toContain("\\<img");
+    expect(output).not.toContain("bad](javascript");
+    expect(output).not.toContain("bad](");
+    expect(output).toContain("ev\\]\\(javascript:alert\\(3\\)\\)");
+    expect(output).toContain("@ev\\]\\(");
+    expect(output).toContain("\\| a");
+    expect(output).not.toContain("- **URL**:");
+    expect(output).toContain("## Quoted post");
+    expect(output).not.toContain("> — [@");
   });
 });

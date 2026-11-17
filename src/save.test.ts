@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Post } from "./post.ts";
@@ -41,5 +41,31 @@ describe("save", () => {
     expect(await save(dir, post("123456", "attacker"), "md", "safe")).toBe(
       join(dir, "123456.md"),
     );
+  });
+
+  test("refuses to write through a symlink", async () => {
+    dir = await mkdtemp(join(tmpdir(), "x-post-save-"));
+    const victim = join(dir, "victim.txt");
+    await writeFile(victim, "ORIGINAL");
+    await symlink(victim, join(dir, "20.json"));
+
+    let message = "";
+    try {
+      await save(dir, post("20", "user"), "json", "OVERWRITTEN");
+    } catch (error) {
+      message = (error as Error).message;
+    }
+    expect(message).toContain("non-regular path");
+    expect(await readFile(victim, "utf8")).toBe("ORIGINAL");
+  });
+
+  test("overwrites a regular file and leaves no temporary files", async () => {
+    dir = await mkdtemp(join(tmpdir(), "x-post-save-"));
+    const path = join(dir, "20.json");
+    await writeFile(path, "OLD");
+
+    expect(await save(dir, post("20", "user"), "json", "NEW")).toBe(path);
+    expect(await readFile(path, "utf8")).toBe("NEW");
+    expect(await readdir(dir)).toEqual(["20.json"]);
   });
 });
